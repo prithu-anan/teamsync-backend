@@ -15,21 +15,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to VM
+      - name: Deploy to VM over SSH
         uses: appleboy/ssh-action@v1.1.0
         with:
-          host:     ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key:      ${{ secrets.SSH_KEY }}       # pass the private key directly :contentReference[oaicite:0]{index=0}
-          port:     22
+          host:        ${{ secrets.VM_HOST }}
+          username:    ${{ secrets.VM_USER }}
+          key:         ${{ secrets.SSH_KEY }}
+          port:        22
+          fingerprint: ${{ secrets.VM_FINGERPRINT }}
+
           script: |
             set -eux
-
-            # ensure the app folder exists
             mkdir -p ~/apps/teamsync-backend
             cd ~/apps/teamsync-backend
 
-            # clone if missing, otherwise reset to latest
             if [ ! -d .git ]; then
               git clone git@github.com:prithu-anan/teamsync-backend.git .
             else
@@ -37,6 +36,5 @@ jobs:
               git reset --hard origin/master
             fi
 
-            # rebuild & restart via Docker Compose
             docker compose pull || true
             docker compose up -d --build

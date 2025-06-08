@@ -15,19 +15,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.KNOWN_HOSTS }}" > ~/.ssh/known_hosts
-          echo "${{ secrets.SSH_KEY }}"      > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-
       - name: Deploy to VM
-        uses: appleboy/ssh-action@v1.1.0    # updated from 0.7.0 to v1.1.0 :contentReference[oaicite:0]{index=0}
+        uses: appleboy/ssh-action@v1.1.0
         with:
-          host:      ${{ secrets.VM_HOST }}
-          username:  ${{ secrets.VM_USER }}
-          key_path:  ~/.ssh/id_deploy
+          host:     ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key:      ${{ secrets.SSH_KEY }}       # pass the private key directly :contentReference[oaicite:0]{index=0}
+          port:     22
           script: |
             set -eux
 

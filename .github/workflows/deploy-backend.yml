@@ -1,0 +1,45 @@
+name: CI/CD → Azure VM
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          echo "${{ secrets.SSH_KEY }}"      > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+      - name: Deploy to VM
+        uses: appleboy/ssh-action@v0.7.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key_path: ~/.ssh/id_deploy
+          script: |
+            set -eux
+
+            # Ensure app directory exists
+            mkdir -p ~/apps/teamsync-backend
+            cd ~/apps/teamsync-backend
+
+            # Clone or reset
+            if [ ! -d .git ]; then
+              git clone git@github.com:prithu-anan/teamsync-backend.git .
+            else
+              git fetch origin main
+              git reset --hard origin/main
+            fi
+
+            # Rebuild & restart with Docker Compose
+            docker compose pull || true
+            docker compose up -d --build

@@ -38,9 +38,9 @@ jobs:
         run: |
           echo "Waiting for DB to become healthy..."
           for i in {1..10}; do
-            status=$(docker inspect --format='{{.State.Health.Status}}' $(docker ps -qf name=db))
-            echo "Health status: $status"
-            if [ "$status" == "healthy" ]; then
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' $(docker ps -qf name=db))
+            echo "Health status: $STATUS"
+            if [ "$STATUS" == "healthy" ]; then
               echo "Database is healthy."
               break
             fi
@@ -61,5 +61,4 @@ jobs:
       - name: Submit dependency graph
         uses: advanced-security/maven-dependency-submission-action@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
+          token: ${{ secrets.GITHUB_TOKEN }}

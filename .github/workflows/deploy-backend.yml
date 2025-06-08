@@ -2,7 +2,10 @@ name: CI/CD → Azure VM
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "master" ]
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
@@ -22,24 +25,24 @@ jobs:
       - name: Deploy to VM
         uses: appleboy/ssh-action@v0.7.0
         with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key_path: ~/.ssh/id_deploy
+          host:      ${{ secrets.VM_HOST }}
+          username:  ${{ secrets.VM_USER }}
+          key_path:  ~/.ssh/id_deploy
           script: |
             set -eux
 
-            # Ensure app directory exists
+            # ensure the app folder exists
             mkdir -p ~/apps/teamsync-backend
             cd ~/apps/teamsync-backend
 
-            # Clone or reset
+            # clone if missing, otherwise reset to latest
             if [ ! -d .git ]; then
-              git clone git@github.com:prithu-anan/teamsync-backend.git .
+              git clone git@github.com:YOUR_USER/teamsync-backend.git .
             else
-              git fetch origin main
-              git reset --hard origin/main
+              git fetch origin master
+              git reset --hard origin/master
             fi
 
-            # Rebuild & restart with Docker Compose
+            # rebuild & restart via Docker Compose
             docker compose pull || true
             docker compose up -d --build

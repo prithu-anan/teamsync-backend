@@ -12,29 +12,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout code on runner
         uses: actions/checkout@v4
 
       - name: Deploy to VM over SSH
         uses: appleboy/ssh-action@v1.1.0
         with:
-          host:        ${{ secrets.VM_HOST }}
-          username:    ${{ secrets.VM_USER }}
-          key:         ${{ secrets.SSH_KEY }}
-          port:        22
-          strict:      false
+          host:     ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key:      ${{ secrets.SSH_KEY }}
+          port:     22
+          # no fingerprint needed when we never do SSH-based git operations
 
           script: |
             set -eux
+
+            # ensure the app folder exists
             mkdir -p ~/apps/teamsync-backend
             cd ~/apps/teamsync-backend
 
+            # if not yet cloned, use HTTPS + token
             if [ ! -d .git ]; then
-              git clone git@github.com:prithu-anan/teamsync-backend.git .
+              git clone \
+                https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/prithu-anan/teamsync-backend.git .
             else
+              # update origin to HTTPS + token and reset
+              git remote set-url origin \
+                https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/prithu-anan/teamsync-backend.git
               git fetch origin master
               git reset --hard origin/master
             fi
 
+            # now build & (re)start
             docker compose pull || true
             docker compose up -d --build

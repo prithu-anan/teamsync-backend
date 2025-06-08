@@ -22,7 +22,6 @@ jobs:
           username:    ${{ secrets.VM_USER }}
           key:         ${{ secrets.SSH_KEY }}
           port:        22
-          fingerprint: ${{ secrets.VM_FINGERPRINT }}
 
           script: |
             set -eux

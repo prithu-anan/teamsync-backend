@@ -1,2 +1,6 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
+
+.github/workflows/ci.yml      merge=ours
+.github/workflows/deploy-backend.yml  merge=ours
+.github/workflows/sync-upstream.yml   merge=ours

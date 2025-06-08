@@ -23,7 +23,7 @@ jobs:
           chmod 600 ~/.ssh/id_deploy
 
       - name: Deploy to VM
-        uses: appleboy/ssh-action@v0.7.0
+        uses: appleboy/ssh-action@v1.1.0    # updated from 0.7.0 to v1.1.0 :contentReference[oaicite:0]{index=0}
         with:
           host:      ${{ secrets.VM_HOST }}
           username:  ${{ secrets.VM_USER }}
@@ -37,7 +37,7 @@ jobs:
 
             # clone if missing, otherwise reset to latest
             if [ ! -d .git ]; then
-              git clone git@github.com:YOUR_USER/teamsync-backend.git .
+              git clone git@github.com:prithu-anan/teamsync-backend.git .
             else
               git fetch origin master
               git reset --hard origin/master

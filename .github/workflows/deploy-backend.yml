@@ -45,24 +45,17 @@ jobs:
           key:      ${{ secrets.SSH_KEY }}
           port:     22
           script: |
-            set -eux
+            cd ~/teamsync/teamsync-backend
+            
             export TAG=${{ github.sha }}
+            
+            # Pull your prebuilt images
+            docker compose pull
+            
+            # Tear down any old stack
+            docker compose down -v
+            
+            # Recreate db, flyway and backend with the proper network & env
+            docker compose up -d
 
-            # 1) Pull the image
-            docker pull prithuanan/teamsync-backend:${TAG} || \
-              docker pull prithuanan/teamsync-backend:latest
-
-            # 2) Remove any old container named "backend"
-            docker rm -f backend || true
-
-            # 3) Also kill any container still holding host port 8080
-            for c in $(docker ps -q --filter "publish=8080"); do
-              docker rm -f $c
-            done
-
-            # 4) Run the new container
-            docker run -d \
-              --name backend \
-              -p 8080:8080 \
-              prithuanan/teamsync-backend:${TAG}
 

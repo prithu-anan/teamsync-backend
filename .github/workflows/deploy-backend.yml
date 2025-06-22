@@ -55,7 +55,11 @@ jobs:
               docker pull prithuanan/teamsync-backend:latest
 
             # stop & remove any existing backend container
-            docker rm -f backend || true
+            old=$(docker ps -q --filter "publish=8080")
+            if [ -n "$old" ]; then
+              docker rm -f $old
+            fi
+
 
             # run the new container in detached mode
             docker run -d \

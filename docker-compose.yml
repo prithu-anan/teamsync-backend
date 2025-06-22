@@ -26,9 +26,6 @@ services:
         condition: service_healthy
 
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: prithuanan/teamsync-backend:${TAG:-latest}
     ports:
       - "8080:8080"

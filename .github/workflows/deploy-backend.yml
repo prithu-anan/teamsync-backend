@@ -1,49 +1,64 @@
-name: CI/CD → Azure VM
+name: Build & Deploy Backend
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master" ]   # or "main" if that's your default
 
 permissions:
   contents: read
 
 jobs:
-  deploy:
+  build-and-push:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code on runner
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to VM over SSH
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          registry: docker.io
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASS }}
+
+      - name: Build & push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            prithuanan/teamsync-backend:latest
+            prithuanan/teamsync-backend:${{ github.sha }}
+
+  deploy:
+    name: Pull & Run on Azure VM
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH & Deploy
         uses: appleboy/ssh-action@v1.1.0
         with:
           host:     ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key:      ${{ secrets.SSH_KEY }}
           port:     22
-          # no fingerprint needed when we never do SSH-based git operations
-
           script: |
             set -eux
 
-            # ensure the app folder exists
-            mkdir -p ~/teamsync/teamsync-backend
-            cd ~/teamsync/teamsync-backend
+            # decide which tag to run
+            export TAG=${{ github.sha }}
 
-            # if not yet cloned, use HTTPS + token
-            if [ ! -d .git ]; then
-              git clone \
-                https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/prithu-anan/teamsync-backend.git .
-            else
-              # update origin to HTTPS + token and reset
-              git remote set-url origin \
-                https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/prithu-anan/teamsync-backend.git
-              git fetch origin master
-              git reset --hard origin/master
-            fi
+            # pull the new image (fallback to latest)
+            docker pull prithuanan/teamsync-backend:${TAG} || \
+              docker pull prithuanan/teamsync-backend:latest
 
-            # now build & (re)start
-            docker compose pull || true
-            docker compose down
-            docker compose up -d --build --force-recreate --remove-orphans
+            # stop & remove any existing backend container
+            docker rm -f backend || true
+
+            # run the new container in detached mode
+            docker run -d \
+              --name backend \
+              -p 8080:8080 \
+              prithuanan/teamsync-backend:${TAG}

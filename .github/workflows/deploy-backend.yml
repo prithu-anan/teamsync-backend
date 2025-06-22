@@ -46,23 +46,23 @@ jobs:
           port:     22
           script: |
             set -eux
-
-            # decide which tag to run
             export TAG=${{ github.sha }}
 
-            # pull the new image (fallback to latest)
+            # 1) Pull the image
             docker pull prithuanan/teamsync-backend:${TAG} || \
               docker pull prithuanan/teamsync-backend:latest
 
-            # stop & remove any existing backend container
-            old=$(docker ps -q --filter "publish=8080")
-            if [ -n "$old" ]; then
-              docker rm -f $old
-            fi
+            # 2) Remove any old container named "backend"
+            docker rm -f backend || true
 
+            # 3) Also kill any container still holding host port 8080
+            for c in $(docker ps -q --filter "publish=8080"); do
+              docker rm -f $c
+            done
 
-            # run the new container in detached mode
+            # 4) Run the new container
             docker run -d \
               --name backend \
               -p 8080:8080 \
               prithuanan/teamsync-backend:${TAG}
+

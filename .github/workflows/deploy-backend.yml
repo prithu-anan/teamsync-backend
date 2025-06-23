@@ -1,29 +1,59 @@
-name: Build & Deploy Backend
+name: Build, Push & Deploy Backend
 
+# Trigger on pushes to your main branch (adjust as needed)
 on:
   push:
-    branches: [ "master" ]   # or "main" if that's your default
-
-permissions:
-  contents: read
+    branches:
+      - master
 
 jobs:
-  deploy:
-    name: Pull & Deploy on Azure VM
+  build-and-push:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
     steps:
-      - name: SSH & Deploy
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASS }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: prithuanan/teamsync-backend:latest
+
+  deploy:
+    name: SSH & Deploy on VM
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.1.0
         with:
-          host:     ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key:      ${{ secrets.SSH_KEY }}
-          port:     22
+          host: ${{ secrets.VM_HOST }}
+          username: azureuser
+          key: ${{ secrets.SSH_KEY }}
+          # Optional: if you use a passphrase:
+          # passphrase: ${{ secrets.VM_SSH_PASSPHRASE }}
           script: |
-            cd ~/teamsync/teamsync-backend
+            # 1. Ensure the network exists
+            docker network create teamsync_network || true
 
-            # 1) Pull the latest commits from your repo
-            git pull origin master
+            # 2. Pull the newly built image
+            docker pull prithuanan/teamsync-backend:latest
 
-            # 2) Recreate only what's changed, in detached mode
-            docker compose up -d
+            # 3. Stop & remove old container (if any)
+            docker stop teamsync-backend 2>/dev/null || true
+            docker rm   teamsync-backend 2>/dev/null || true
+
+            # 4. Run the new container on your external network
+            docker run -d \
+              --name teamsync-backend \
+              --network teamsync_network \
+              -p 8080:8080 \
+              prithuanan/teamsync-backend:latest

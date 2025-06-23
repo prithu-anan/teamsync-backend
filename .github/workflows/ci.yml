@@ -30,6 +30,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Create Docker network
+        run: docker network create teamsync_network || true
+
       - name: Start PostgreSQL & Flyway via Docker Compose
         run: docker compose up -d
 

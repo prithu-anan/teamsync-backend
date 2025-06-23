@@ -50,6 +50,9 @@ jobs:
             # 3. Stop & remove old container (if any)
             docker rm -f teamsync-backend 2>/dev/null || true
 
+            # OPTIONAL: kill any host process on 8080 (if needed)
+            sudo fuser -k 8080/tcp || true
+
             # 4. Run the new container on your external network
             docker run -d \
               --name teamsync-backend \

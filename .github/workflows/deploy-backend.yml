@@ -1,64 +1,29 @@
-name: Build, Push & Deploy Backend
+name: Build & Deploy Backend
 
-# Trigger on pushes to your main branch (adjust as needed)
 on:
   push:
-    branches:
-      - master
+    branches: [ "master" ]   # or "main" if that's your default
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-push:
-    name: Build & Push Docker Image
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.REGISTRY_USER }}
-          password: ${{ secrets.REGISTRY_PASS }}
-
-      - name: Build and push image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: prithuanan/teamsync-backend:latest
-
   deploy:
-    name: SSH & Deploy on VM
-    needs: build-and-push
+    name: Pull & Deploy on Azure VM
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
+      - name: SSH & Deploy
         uses: appleboy/ssh-action@v1.1.0
         with:
-          host: ${{ secrets.VM_HOST }}
+          host:     ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          # Optional: if you use a passphrase:
-          # passphrase: ${{ secrets.VM_SSH_PASSPHRASE }}
+          key:      ${{ secrets.SSH_KEY }}
+          port:     22
           script: |
-            # 1. Ensure the network exists
-            docker network create teamsync_network || true
+            cd ~/teamsync/teamsync-backend
 
-            # 2. Pull the newly built image
-            docker pull prithuanan/teamsync-backend:latest
+            # 1) Pull the latest commits from your repo
+            git pull origin master
 
-            # 3. Stop & remove old container (if any)
-            docker rm -f teamsync-backend 2>/dev/null || true
-
-            # OPTIONAL: kill any host process on 8080 (if needed)
-            sudo fuser -k 8080/tcp || true
-
-            # 4. Run the new container on your external network
-            docker run -d \
-              --name teamsync-backend \
-              --network teamsync_network \
-              -p 8080:8080 \
-              -e SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres \
-              -e SPRING_DATASOURCE_USERNAME=postgres \
-              -e SPRING_DATASOURCE_PASSWORD=123 \
-              prithuanan/teamsync-backend:latest
+            # 2) Recreate only what's changed, in detached mode
+            docker compose up -d

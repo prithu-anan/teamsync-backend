@@ -8,33 +8,8 @@ permissions:
   contents: read
 
 jobs:
-  build-and-push:
-    name: Build & Push Docker Image
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          registry: docker.io
-          username: ${{ secrets.REGISTRY_USER }}
-          password: ${{ secrets.REGISTRY_PASS }}
-
-      - name: Build & push image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: Dockerfile
-          push: true
-          tags: |
-            prithuanan/teamsync-backend:latest
-            prithuanan/teamsync-backend:${{ github.sha }}
-
   deploy:
-    name: Pull & Run on Azure VM
-    needs: build-and-push
+    name: Pull & Deploy on Azure VM
     runs-on: ubuntu-latest
     steps:
       - name: SSH & Deploy
@@ -46,16 +21,9 @@ jobs:
           port:     22
           script: |
             cd ~/teamsync/teamsync-backend
-            
-            export TAG=${{ github.sha }}
-            
-            # Pull your prebuilt images
-            docker compose pull
-            
-            # Tear down any old stack
-            docker compose down -v
-            
-            # Recreate db, flyway and backend with the proper network & env
-            docker compose up -d --build
 
+            # 1) Pull the latest commits from your repo
+            git pull origin master
 
+            # 2) Recreate only what's changed, in detached mode
+            docker compose up -d

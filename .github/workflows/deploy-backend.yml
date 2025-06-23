@@ -36,7 +36,7 @@ jobs:
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.VM_HOST }}
-          username: azureuser
+          username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_KEY }}
           # Optional: if you use a passphrase:
           # passphrase: ${{ secrets.VM_SSH_PASSPHRASE }}
@@ -48,8 +48,7 @@ jobs:
             docker pull prithuanan/teamsync-backend:latest
 
             # 3. Stop & remove old container (if any)
-            docker stop teamsync-backend 2>/dev/null || true
-            docker rm   teamsync-backend 2>/dev/null || true
+            docker rm -f teamsync-backend 2>/dev/null || true
 
             # 4. Run the new container on your external network
             docker run -d \

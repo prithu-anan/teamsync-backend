@@ -1,5 +1,7 @@
 name: Java CI with Maven, Docker Compose, and Flyway
 
+# demo comment
+
 on:
   push:
     branches: [ "master" ]

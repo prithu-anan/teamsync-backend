@@ -6,3 +6,6 @@
 .github/workflows/sync-upstream.yml   merge=ours
 
 docker-compose.yml  merge=ours
+
+.gitignore                         merge=ours
+src/main/resources/application.properties   merge=ours

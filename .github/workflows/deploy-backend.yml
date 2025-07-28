@@ -30,4 +30,4 @@ jobs:
             AZURE_CONTAINER_NAME=${{ secrets.AZURE_CONTAINER_NAME }} \
             AZURE_ACCOUNT_NAME=${{ secrets.AZURE_ACCOUNT_NAME }} \
             AZURE_SAS_TOKEN=${{ secrets.AZURE_SAS_TOKEN }} \
-            docker compose down -v && docker compose up -d --build
+            docker compose down && docker compose up -d --build

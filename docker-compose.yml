@@ -37,10 +37,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: 123
-      AZURE_CONNECTION_STRING: ${{ secrets.AZURE_CONNECTION_STRING }}
-      AZURE_CONTAINER_NAME: ${{ secrets.AZURE_CONTAINER_NAME }}
-      AZURE_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNT_NAME }}
-      AZURE_SAS_TOKEN: ${{ secrets.AZURE_SAS_TOKEN }}
     depends_on:
       db:
         condition: service_healthy

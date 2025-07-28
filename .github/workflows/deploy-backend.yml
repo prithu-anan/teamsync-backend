@@ -26,5 +26,8 @@ jobs:
             git pull origin master
 
             # 2) Recreate only what's changed, in detached mode
-            docker compose down -v
-            docker compose up -d
+            AZURE_CONNECTION_STRING=${{ secrets.AZURE_CONNECTION_STRING }} \
+            AZURE_CONTAINER_NAME=${{ secrets.AZURE_CONTAINER_NAME }} \
+            AZURE_ACCOUNT_NAME=${{ secrets.AZURE_ACCOUNT_NAME }} \
+            AZURE_SAS_TOKEN=${{ secrets.AZURE_SAS_TOKEN }} \
+            docker compose down -v && docker compose up -d --build

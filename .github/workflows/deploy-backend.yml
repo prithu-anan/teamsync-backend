@@ -26,4 +26,5 @@ jobs:
             git pull origin master
 
             # 2) Recreate only what's changed, in detached mode
+            docker compose down -v
             docker compose up -d

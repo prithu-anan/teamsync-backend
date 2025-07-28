@@ -20,79 +20,14 @@ jobs:
           key:      ${{ secrets.SSH_KEY }}
           port:     22
           script: |
-            set -e  # Exit on any error
-            
-            echo "Starting deployment process..."
-            
-            # Navigate to project directory
-            cd ~/teamsync/teamsync-backend || { echo "Failed to navigate to project directory"; exit 1; }
-            
-            # Create external network if it doesn't exist
-            echo "Creating Docker network..."
-            docker network create teamsync_network || true
-            
-            # Backup current state (optional)
-            echo "Backing up current state..."
-            if [ -f docker-compose.yml ]; then
-              cp docker-compose.yml docker-compose.yml.backup
-            fi
-            
-            # Stash any local changes to avoid conflicts
-            echo "Stashing local changes..."
-            git stash || true
-            
-            # Pull the latest commits from your repo
-            echo "Pulling latest changes..."
-            git pull origin master || { echo "Failed to pull latest changes"; exit 1; }
-            
-            # Build the Docker image
-            echo "Building Docker image..."
-            docker build -t prithuanan/teamsync-backend:latest . || { echo "Failed to build Docker image"; exit 1; }
-            
-            # Stop existing containers gracefully
-            echo "Stopping existing containers..."
-            docker compose down || true
-            
-            # Set environment variables
-            export AZURE_CONNECTION_STRING="${{ secrets.AZURE_CONNECTION_STRING }}"
-            export AZURE_CONTAINER_NAME="${{ secrets.AZURE_CONTAINER_NAME }}"
-            export AZURE_ACCOUNT_NAME="${{ secrets.AZURE_ACCOUNT_NAME }}"
-            export AZURE_SAS_TOKEN="${{ secrets.AZURE_SAS_TOKEN }}"
-            
-            # Start services in detached mode
-            echo "Starting services..."
-            docker compose up -d --build || { echo "Failed to start services"; exit 1; }
-            
-            # Wait for database to be healthy
-            echo "Waiting for database to be healthy..."
-            timeout 60 bash -c '
-              while ! docker compose ps db | grep -q "healthy"; do
-                echo "Database not healthy yet, waiting..."
-                sleep 5
-              done
-              echo "Database is healthy!"
-            ' || { echo "Database health check failed"; exit 1; }
-            
-            # Wait for backend to be healthy
-            echo "Waiting for backend to be healthy..."
-            timeout 180 bash -c '
-              while ! docker compose ps backend | grep -q "healthy"; do
-                echo "Backend not healthy yet, waiting..."
-                sleep 10
-              done
-              echo "Backend is healthy!"
-            ' || { echo "Backend health check failed"; exit 1; }
-            
-            # Final health check
-            echo "Performing final health check..."
-            sleep 10
-            if curl -f http://localhost:8080/api/health; then
-              echo "✅ Deployment successful! Application is responding."
-            else
-              echo "❌ Application health check failed"
-              echo "Container logs:"
-              docker compose logs backend
-              exit 1
-            fi
-            
-            echo "🎉 Deployment completed successfully!"
+            cd ~/teamsync/teamsync-backend
+
+            # 1) Pull the latest commits from your repo
+            git pull origin master
+
+            # 2) Recreate only what's changed, in detached mode
+            AZURE_CONNECTION_STRING=${{ secrets.AZURE_CONNECTION_STRING }} \
+            AZURE_CONTAINER_NAME=${{ secrets.AZURE_CONTAINER_NAME }} \
+            AZURE_ACCOUNT_NAME=${{ secrets.AZURE_ACCOUNT_NAME }} \
+            AZURE_SAS_TOKEN=${{ secrets.AZURE_SAS_TOKEN }} \
+            docker compose down && docker compose up -d --build

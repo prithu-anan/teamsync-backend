@@ -25,7 +25,10 @@ jobs:
             # 1) Pull the latest commits from your repo
             git pull origin master
 
-            # 2) Recreate only what's changed, in detached mode
+            # 2) Pull the latest Docker image
+            docker pull prithuanan/teamsync-backend:latest
+
+            # 3) Recreate only what's changed, in detached mode
             AZURE_CONNECTION_STRING=${{ secrets.AZURE_CONNECTION_STRING }} \
             AZURE_CONTAINER_NAME=${{ secrets.AZURE_CONTAINER_NAME }} \
             AZURE_ACCOUNT_NAME=${{ secrets.AZURE_ACCOUNT_NAME }} \

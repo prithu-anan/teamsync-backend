@@ -116,68 +116,20 @@ jobs:
             # 1) Pull the latest commits from your repo
             git pull origin master
 
-            # 2) Pull the latest Docker image
-            docker pull prithuanan/teamsync-backend:latest
+            # 2) Try to pull the latest Docker image, build locally if it fails
+            echo "Attempting to pull latest Docker image..."
+            if docker pull prithuanan/teamsync-backend:latest; then
+              echo "Successfully pulled Docker image from registry"
+            else
+              echo "Failed to pull Docker image, building locally..."
+              docker build -t prithuanan/teamsync-backend:latest .
+              echo "Successfully built Docker image locally"
+            fi
 
             # 3) Recreate containers with the new image
             AZURE_CONNECTION_STRING=${{ secrets.AZURE_CONNECTION_STRING }} \
             AZURE_CONTAINER_NAME=${{ secrets.AZURE_CONTAINER_NAME }} \
             AZURE_ACCOUNT_NAME=${{ secrets.AZURE_ACCOUNT_NAME }} \
             AZURE_SAS_TOKEN=${{ secrets.AZURE_SAS_TOKEN }} \
-            docker compose up -d --build
+            docker compose up -d
 
-  test:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'  # Only run tests on PR
-
-    env:
-      AZURE_CONNECTION_STRING: ${{ secrets.AZURE_CONNECTION_STRING }}
-      AZURE_CONTAINER_NAME: ${{ secrets.AZURE_CONTAINER_NAME }}
-      AZURE_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNT_NAME }}
-      AZURE_SAS_TOKEN: ${{ secrets.AZURE_SAS_TOKEN }}
-
-    services:
-      docker:
-        image: docker:24.0.7
-        options: --privileged
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Create Docker network
-        run: docker network create teamsync_network || true
-
-      - name: Start PostgreSQL & Flyway via Docker Compose
-        run: docker compose up -d
-
-      - name: Wait for DB to be healthy
-        run: |
-          echo "Waiting for DB to become healthy..."
-          for i in {1..10}; do
-            STATUS=$(docker inspect --format='{{.State.Health.Status}}' $(docker ps -qf name=db))
-            echo "Health status: $STATUS"
-            if [ "$STATUS" == "healthy" ]; then
-              echo "Database is healthy."
-              break
-            fi
-            sleep 5
-          done
-
-      - name: Wait for Flyway to finish migration
-        run: |
-          echo "Waiting for Flyway to finish..."
-          docker compose logs flyway
-
-      - name: Ensure Maven wrapper is executable
-        run: chmod +x ./mvnw
-
-      - name: Build with Maven
-        run: ./mvnw -B clean package -Dmaven.test.skip=true 

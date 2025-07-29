@@ -41,7 +41,7 @@ jobs:
         run: docker network create teamsync_network || true
 
       - name: Start PostgreSQL & Flyway via Docker Compose
-        run: docker compose up -d
+        run: docker compose up -d db flyway
 
       - name: Wait for DB to be healthy
         run: |
